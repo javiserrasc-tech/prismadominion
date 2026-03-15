@@ -74,6 +74,8 @@ interface GameScreenProps {
 export function GameScreen({ playerDeckIds, aiDeckIds, playerDeckId, aiDeckId, difficulty, onExit }: GameScreenProps) {
   const playerDeck = DECK_MAP[playerDeckId] ?? { name: 'Custom', energyType: 'aether' as const, color: '#c77dff', deckIds: playerDeckIds }
   const aiDeck     = DECK_MAP[aiDeckId]     ?? { name: 'Custom', energyType: 'ignis'  as const, color: '#ff6b8a', deckIds: aiDeckIds }
+  const playerColor = ENERGY_COLORS[playerDeck.energyType]
+  const aiColor     = ENERGY_COLORS[aiDeck.energyType]
 
   const [state, dispatch] = useReducer(
     reducer, null,
@@ -210,9 +212,6 @@ export function GameScreen({ playerDeckIds, aiDeckIds, playerDeckId, aiDeckId, d
     'ai-turn':          '🤖 AI Turn',
     'game-over':        'Game Over',
   }
-
-  const playerColor = ENERGY_COLORS[playerDeck.energyType]
-  const aiColor     = ENERGY_COLORS[aiDeck.energyType]
 
   // Split battlefield into shards and non-shards
   const playerShards    = state.player.battlefield.filter(bc => getCard(bc.defId).type === 'shard')
@@ -450,9 +449,7 @@ export function GameScreen({ playerDeckIds, aiDeckIds, playerDeckId, aiDeckId, d
           paddingBottom: 6, flex: 1, alignItems: 'flex-end',
         }}>
           {state.player.hand.map((card, i) => {
-            const isAffordable = card.type === 'shard'
-              ? !state.player.shardPlayedThisTurn
-              : energy >= card.cost
+            const isAffordable = energy >= card.cost
             return (
               <HandCard
                 key={`${card.id}-${i}`} card={card}
