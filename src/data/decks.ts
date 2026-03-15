@@ -2,7 +2,7 @@ import type { DeckInfo } from '../types'
 
 // ═══════════════════════════════════════════════════════
 //  PRISMA DOMINION — 5 Mazos predefinidos
-//  30 cartas cada uno (12 shards + 18 no-shards)
+//  40 cartas cada uno — SIN shards (se colocan durante el juego)
 // ═══════════════════════════════════════════════════════
 
 const r = (id: string, n: number) => Array(n).fill(id)
@@ -20,25 +20,26 @@ export const DECKS: DeckInfo[] = [
     color: '#ffd166',
     description: 'Diosas de luz. Gana vida, protege aliadas y supera al enemigo por resistencia.',
     deckIds: [
-      ...r('shard-solara-a', 7),
-      ...r('shard-solara-b', 5),
-      // Champions ×10
-      ...r('champ-aurora',    2),
-      ...r('champ-lumia',     2),
-      ...r('champ-aria',      2),
-      ...r('champ-seraphine', 2),
-      ...r('champ-willow',    1),   // aliada de apoyo
-      ...r('champ-dawn',      1),
-      // Arts ×6
-      ...r('art-holybeam',    2),
-      ...r('art-divineshield',2),
-      ...r('art-healinglight',1),
-      ...r('art-blessing',    1),
-      // Relics ×2
-      ...r('relic-crystalamulet', 1),
-      ...r('relic-sacredbanner',  1),
+      // Champions ×18
+      ...r('champ-aurora',       3),
+      ...r('champ-lumia',        3),
+      ...r('champ-aria',         3),
+      ...r('champ-seraphine',    3),
+      ...r('champ-dawn',         3),
+      ...r('champ-prism',        3),
+      // Arts ×16
+      ...r('art-holybeam',       3),
+      ...r('art-divineshield',   3),
+      ...r('art-healinglight',   3),
+      ...r('art-blessing',       3),
+      ...r('art-radiantstrike',  2),
+      ...r('art-purify',         2),
+      // Relics ×6
+      ...r('relic-crystalamulet',2),
+      ...r('relic-sacredbanner', 2),
+      ...r('relic-halocrown',    2),
     ]
-    // 12 shards + 10 champs + 6 arts + 2 relics = 30
+    // 18 + 16 + 6 = 40
   },
 
   // ──────────────────────────────────────────────
@@ -50,24 +51,26 @@ export const DECKS: DeckInfo[] = [
     faction: 'Ignaras',
     energyType: 'ignis',
     color: '#ff6b8a',
-    description: 'Guerreras del fuego. Ataca desde el primer turno y no dejes de quemar.',
+    description: 'Guerreras del fuego. Ataca desde el primer turno y no pares de quemar.',
     deckIds: [
-      ...r('shard-ignis-a', 7),
-      ...r('shard-ignis-b', 5),
-      // Champions ×10
-      ...r('champ-ember',    3),
-      ...r('champ-spark',    2),
-      ...r('champ-pyra',     2),
-      ...r('champ-cinder',   2),
-      ...r('champ-blaze',    1),
-      // Arts ×6
-      ...r('art-blazingcharge', 2),
-      ...r('art-ignite',        2),
-      ...r('art-fireball',      1),
-      ...r('art-heatwave',      1),
-      // Relics ×2
-      ...r('relic-forgeoffury', 1),
-      ...r('relic-wardrum',     1),
+      // Champions ×18
+      ...r('champ-ember',        3),
+      ...r('champ-spark',        3),
+      ...r('champ-pyra',         3),
+      ...r('champ-cinder',       3),
+      ...r('champ-blaze',        3),
+      ...r('champ-volcanic',     3),
+      // Arts ×16
+      ...r('art-blazingcharge',  3),
+      ...r('art-ignite',         3),
+      ...r('art-fireball',       3),
+      ...r('art-heatwave',       3),
+      ...r('art-eruption',       2),
+      ...r('art-inferno',        2),
+      // Relics ×6
+      ...r('relic-forgeoffury',  2),
+      ...r('relic-wardrum',      2),
+      ...r('relic-embercrown',   2),
     ]
   },
 
@@ -82,23 +85,24 @@ export const DECKS: DeckInfo[] = [
     color: '#06d6f7',
     description: 'Dominio total. Paraliza enemigas, roba cartas y gana en el juego tardío.',
     deckIds: [
-      ...r('shard-glacis-a', 7),
-      ...r('shard-glacis-b', 5),
-      // Champions ×10
-      ...r('champ-mizuki',  2),
-      ...r('champ-frost',   2),
-      ...r('champ-marina',  2),
-      ...r('champ-coral',   2),
-      ...r('champ-sleet',   1),
-      ...r('champ-nami',    1),
-      // Arts ×6
-      ...r('art-icelance',      2),
-      ...r('art-insight',       2),
-      ...r('art-countercurrent',1),
-      ...r('art-whirlpool',     1),
-      // Relics ×2
-      ...r('relic-tidecallerorb', 1),
-      ...r('relic-frostwatch',    1),
+      // Champions ×18
+      ...r('champ-mizuki',       3),
+      ...r('champ-frost',        3),
+      ...r('champ-marina',       3),
+      ...r('champ-coral',        3),
+      ...r('champ-sleet',        3),
+      ...r('champ-nami',         3),
+      // Arts ×16
+      ...r('art-icelance',       3),
+      ...r('art-insight',        3),
+      ...r('art-countercurrent', 3),
+      ...r('art-whirlpool',      3),
+      ...r('art-blizzard',       2),
+      ...r('art-tidalcrash',     2),
+      // Relics ×6
+      ...r('relic-tidecallerorb',2),
+      ...r('relic-frostwatch',   2),
+      ...r('relic-arcticthrone', 2),
     ]
   },
 
@@ -113,23 +117,24 @@ export const DECKS: DeckInfo[] = [
     color: '#7ae582',
     description: 'El bosque eterno. Bloquea, regenera y aplasta con criaturas enormes.',
     deckIds: [
-      ...r('shard-verdis-a', 7),
-      ...r('shard-verdis-b', 5),
-      // Champions ×10
-      ...r('champ-moss',    2),
-      ...r('champ-willow',  2),
-      ...r('champ-sylva',   2),
-      ...r('champ-briar',   2),
-      ...r('champ-fern',    1),
-      ...r('champ-ivy',     1),
-      // Arts ×6
-      ...r('art-naturesembrace', 2),
-      ...r('art-entangle',       2),
-      ...r('art-overgrowth',     1),
-      ...r('art-ancientrite',    1),
-      // Relics ×2
-      ...r('relic-druidicaltar', 1),
-      ...r('relic-canopyshield', 1),
+      // Champions ×18
+      ...r('champ-moss',         3),
+      ...r('champ-willow',       3),
+      ...r('champ-sylva',        3),
+      ...r('champ-briar',        3),
+      ...r('champ-fern',         3),
+      ...r('champ-ivy',          3),
+      // Arts ×16
+      ...r('art-naturesembrace', 3),
+      ...r('art-entangle',       3),
+      ...r('art-overgrowth',     3),
+      ...r('art-ancientrite',    3),
+      ...r('art-regrowth',       2),
+      ...r('art-sporecloud',     2),
+      // Relics ×6
+      ...r('relic-druidicaltar', 2),
+      ...r('relic-canopyshield', 2),
+      ...r('relic-rootnetwork',  2),
     ]
   },
 
@@ -144,23 +149,24 @@ export const DECKS: DeckInfo[] = [
     color: '#c77dff',
     description: 'Fantasmas digitales. Ataca sin ser bloqueada, roba cartas y destruye permanentes.',
     deckIds: [
-      ...r('shard-aether-a', 7),
-      ...r('shard-aether-b', 5),
-      // Champions ×10
-      ...r('champ-vector', 2),
-      ...r('champ-pixel',  2),
-      ...r('champ-hex',    2),
-      ...r('champ-nova',   2),
-      ...r('champ-cipher', 1),
-      ...r('champ-exe',    1),
-      // Arts ×6
-      ...r('art-overclock',     2),
-      ...r('art-datadrain',     2),
-      ...r('art-nullpointer',   1),
-      ...r('art-systemcrash',   1),
-      // Relics ×2
-      ...r('relic-neurallink',  1),
-      ...r('relic-powercore',   1),
+      // Champions ×18
+      ...r('champ-vector',       3),
+      ...r('champ-pixel',        3),
+      ...r('champ-hex',          3),
+      ...r('champ-nova',         3),
+      ...r('champ-cipher',       3),
+      ...r('champ-exe',          3),
+      // Arts ×16
+      ...r('art-overclock',      3),
+      ...r('art-datadrain',      3),
+      ...r('art-nullpointer',    3),
+      ...r('art-systemcrash',    3),
+      ...r('art-ghostprotocol',  2),
+      ...r('art-firewall',       2),
+      // Relics ×6
+      ...r('relic-neurallink',   2),
+      ...r('relic-powercore',    2),
+      ...r('relic-quantumcore',  2),
     ]
   },
 ]
