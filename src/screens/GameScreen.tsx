@@ -221,7 +221,7 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
     return <GameOverScreen winner={state.winner} playerName={playerDeck.name} onExit={onExit} />
   }
 
-  const phaseLabel: Record<typeof state.phase, string> = {
+const phaseLabel: Partial<Record<GamePhase, string>> = {
     'player-main': 'Your Turn',
     'player-attackers': 'Declare Attackers',
     'player-blockers': 'Assign Blockers',
