@@ -29,7 +29,7 @@ function makePlayer(deckIds: string[]): PlayerState {
     deck,
     battlefield: [],
     graveyard: [],
-    shardPlayedThisTurn: false,
+    shardsPlaced: 0,
     extraEnergy: 0,
   }
 }
@@ -56,13 +56,13 @@ export function createGame(
   difficulty: 'easy' | 'hard'
 ): GameState {
   return {
-    phase: 'player-main',
+    phase: 'player-shard',
     turn: 1,
     activePlayer: 'player',
     player: makePlayer(playerDeckIds),
     ai: makePlayer(aiDeckIds),
     combat: null,
-    log: ['⚔  Battle begins! Your turn.'],
+    log: ['⚔  Battle begins! Choose your first shard.'],
     winner: null,
     difficulty,
     pendingSpell: null,
@@ -186,18 +186,8 @@ export function actionPlayCard(
   const card = p.hand[cardIdx]
   const energy = getEnergy(s, who)
 
-  // Shards: free, but 1 per turn
-  if (card.type === 'shard') {
-    if (p.shardPlayedThisTurn) return state
-    p.hand.splice(cardIdx, 1)
-    const bc = makeBattleCard(card.id)
-    bc.tapped = false
-    bc.summonSick = false
-    p.battlefield.push(bc)
-    p.shardPlayedThisTurn = true
-    addLog(s, `${who === 'player' ? '🟡 You play' : '🔵 AI plays'} ${card.name}`)
-    return s
-  }
+  // Shards cannot be played from hand — they are placed at start of turn
+  if (card.type === 'shard') return state
 
   // Non-shards: cost energy
   if (energy < card.cost) return state
@@ -949,6 +939,84 @@ export function actionResolveCombat(state: GameState): GameState {
 //  Turn Management
 // ─────────────────────────────────────────────
 
+// ─────────────────────────────────────────────
+//  Shard placement (replaces old shard-from-hand)
+// ─────────────────────────────────────────────
+
+export const MAX_SHARDS = 10
+export const SHARD_IDS: Record<import('../types').EnergyType, string> = {
+  solara: 'shard-solara-a',
+  glacis:  'shard-glacis-a',
+  ignis:   'shard-ignis-a',
+  verdis:  'shard-verdis-a',
+  aether:  'shard-aether-a',
+}
+
+/** Player picks a shard color at the start of their turn */
+export function actionPlaceShard(
+  state: GameState,
+  energyType: import('../types').EnergyType
+): GameState {
+  if (state.phase !== 'player-shard') return state
+  const s = clone(state)
+  const p = s.player
+  const shardCount = p.battlefield.filter(bc => getCard(bc.defId).type === 'shard').length
+  if (shardCount >= MAX_SHARDS) {
+    // Already at max — just skip to main
+    s.phase = 'player-main'
+    addLog(s, `🌟 Turn ${s.turn} — Your turn!`)
+    return s
+  }
+  const shardId = SHARD_IDS[energyType]
+  const bc = makeBattleCard(shardId, false)
+  bc.tapped = false
+  bc.summonSick = false
+  p.battlefield.push(bc)
+  p.shardsPlaced = shardCount + 1
+  addLog(s, `✦ You place a ${energyType} shard (${shardCount + 1}/${MAX_SHARDS})`)
+  s.phase = 'player-main'
+  addLog(s, `🌟 Turn ${s.turn} — Your turn!`)
+  return s
+}
+
+/** AI places a shard — picks the color most useful for cards in hand */
+function aiPlaceShard(s: GameState) {
+  const p = s.ai
+  const shardCount = p.battlefield.filter(bc => getCard(bc.defId).type === 'shard').length
+  if (shardCount >= MAX_SHARDS) return
+
+  // Count energy types in hand to pick best shard
+  const handCounts: Partial<Record<import('../types').EnergyType, number>> = {}
+  for (const card of p.hand) {
+    if (card.type !== 'shard') {
+      handCounts[card.energyType] = (handCounts[card.energyType] ?? 0) + 1
+    }
+  }
+  // Also count existing shards to avoid too much of one type
+  const shardCounts: Partial<Record<import('../types').EnergyType, number>> = {}
+  for (const bc of p.battlefield) {
+    const def = getCard(bc.defId)
+    if (def.type === 'shard') {
+      shardCounts[def.energyType] = (shardCounts[def.energyType] ?? 0) + 1
+    }
+  }
+
+  const types: import('../types').EnergyType[] = ['solara','glacis','ignis','verdis','aether']
+  // Pick type with most cards in hand, tiebreak by fewest existing shards
+  const best = types.reduce((a, b) => {
+    const scoreA = (handCounts[a] ?? 0) * 3 - (shardCounts[a] ?? 0)
+    const scoreB = (handCounts[b] ?? 0) * 3 - (shardCounts[b] ?? 0)
+    return scoreA >= scoreB ? a : b
+  })
+
+  const bc = makeBattleCard(SHARD_IDS[best], false)
+  bc.tapped = false
+  bc.summonSick = false
+  p.battlefield.push(bc)
+  p.shardsPlaced = shardCount + 1
+  addLog(s, `🤖 AI places a ${best} shard (${shardCount + 1}/${MAX_SHARDS})`)
+}
+
 export function actionEndMainPhase(state: GameState): GameState {
   if (state.phase !== 'player-main') return state
   const s = clone(state)
@@ -961,6 +1029,7 @@ export function actionEndMainPhase(state: GameState): GameState {
 export function actionStartAITurn(state: GameState): GameState {
   const s = clone(state)
   untapPhase(s, 'ai')
+  aiPlaceShard(s)          // AI places its shard automatically
   drawPhase(s, 'ai')
   s.turn++
   return s
@@ -970,16 +1039,22 @@ export function actionStartPlayerTurn(state: GameState): GameState {
   const s = clone(state)
   untapPhase(s, 'player')
   drawPhase(s, 'player')
-  s.phase = 'player-main'
   s.turn++
-  addLog(s, `🌟 Turn ${s.turn} — Your turn!`)
+  const shardCount = s.player.battlefield.filter(bc => getCard(bc.defId).type === 'shard').length
+  if (shardCount >= MAX_SHARDS) {
+    // Already at 10 shards — skip shard phase
+    s.phase = 'player-main'
+    addLog(s, `🌟 Turn ${s.turn} — Your turn! (max shards reached)`)
+  } else {
+    s.phase = 'player-shard'
+    addLog(s, `🌟 Turn ${s.turn} — Choose a shard color!`)
+  }
   return s
 }
 
 function untapPhase(s: GameState, who: 'player' | 'ai') {
   const p = s[who]
   const opp = who === 'player' ? 'ai' : 'player'
-  p.shardPlayedThisTurn = false
   p.extraEnergy = 0
 
   // Energy relics: Crystal Amulet / War Drum / Root Network
@@ -1076,18 +1151,7 @@ export function aiPlayCards(state: GameState): { newState: GameState; played: bo
 
   const hand = [...s.ai.hand]
 
-  // 1. Play a shard if we have one and haven't this turn
-  if (!s.ai.shardPlayedThisTurn) {
-    const shardInHand = hand.find(c => c.type === 'shard')
-    if (shardInHand) {
-      const ns = actionPlayCard(s, shardInHand.id, who)
-      Object.assign(s, ns)
-      played = true
-      return { newState: s, played }
-    }
-  }
-
-  // 2. Play best non-shard card we can afford
+  // Play best card we can afford
   const energy = getEnergy(s, who)
   const playable = hand
     .filter(c => c.type !== 'shard' && c.cost <= energy)
