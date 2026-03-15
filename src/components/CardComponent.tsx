@@ -25,15 +25,43 @@ const SHARD_SIGIL: Record<EnergyType, string> = {
 }
 
 const CARD_EMOJI: Record<string, string> = {
+  // Solara
   'champ-seraphine':'🌟','champ-lumia':'🔆','champ-aria':'🏹','champ-aurora':'🛡',
+  'champ-celestia':'☀️','champ-prism':'🌈','champ-solenne':'🕊','champ-radiance':'💫',
+  'champ-dawn':'🌅','champ-solara-prime':'✨',
+  // Glacis
   'champ-marina':'🌊','champ-coral':'❄','champ-nami':'💨','champ-mizuki':'🔮',
+  'champ-blizzara':'🧊','champ-sleet':'💧','champ-aqua':'🐬','champ-tempest':'⛈',
+  'champ-frost':'❄','champ-thalassa':'🌀',
+  // Ignis
   'champ-pyra':'🔥','champ-igna':'💢','champ-scarlet':'🦅','champ-ember':'✨',
+  'champ-inferna':'🌋','champ-cinder':'🔴','champ-blaze':'🔥','champ-volcanic':'🌋',
+  'champ-spark':'⚡','champ-magmara':'🪨',
+  // Verdis
   'champ-sylva':'🌳','champ-fern':'🌿','champ-gaia':'⛰','champ-ivy':'🌱',
+  'champ-briar':'🌵','champ-thorn':'🌾','champ-willow':'🍃','champ-verdant':'🌴',
+  'champ-moss':'🟢','champ-worldtree':'🌲',
+  // Aether
   'champ-pixel':'👾','champ-nova':'⚡','champ-glitch':'🔧','champ-exe':'🖥',
-  'art-holybeam':'✨','art-divineshield':'🛡','art-tidalcrash':'🌊',
-  'art-icelance':'❄','art-fireball':'🔥','art-blazingcharge':'💨',
-  'art-naturesembrace':'🌿','art-systemcrash':'💥',
-  'relic-crystalamulet':'💎','relic-powercore':'⚡',
+  'champ-cipher':'🔐','champ-vector':'🎯','champ-binary':'💻','champ-daemon':'👁',
+  'champ-hex':'☠️','champ-null':'🕳',
+  // Arts
+  'art-holybeam':'✨','art-divineshield':'🛡','art-healinglight':'💛','art-purify':'🌟',
+  'art-radiantstrike':'☀️','art-blessing':'🙏','art-solarflare':'🌞',
+  'art-tidalcrash':'🌊','art-icelance':'❄','art-whirlpool':'🌀','art-frozentime':'⏸',
+  'art-insight':'👁','art-blizzard':'❄','art-countercurrent':'💧',
+  'art-fireball':'🔥','art-blazingcharge':'💨','art-ignite':'🔥','art-inferno':'🌋',
+  'art-heatwave':'🌡','art-eruption':'💥','art-phoenixcall':'🦅',
+  'art-naturesembrace':'🌿','art-entangle':'🌱','art-regrowth':'🌱','art-overgrowth':'🌳',
+  'art-sporecloud':'🍄','art-ancientrite':'🪬','art-verdantstorm':'⛈',
+  'art-systemcrash':'💥','art-datadrain':'📡','art-overclock':'⚡','art-ghostprotocol':'👻',
+  'art-nullpointer':'🔴','art-reboot':'🔄','art-firewall':'🔥',
+  // Relics
+  'relic-crystalamulet':'💎','relic-halocrown':'👑','relic-sacredbanner':'🚩',
+  'relic-frostwatch':'🗼','relic-tidecallerorb':'🔮','relic-arcticthrone':'❄',
+  'relic-forgeoffury':'⚒','relic-embercrown':'🔥','relic-wardrum':'🥁',
+  'relic-druidicaltar':'🌿','relic-canopyshield':'🌲','relic-rootnetwork':'🌱',
+  'relic-powercore':'⚡','relic-neurallink':'🧠','relic-quantumcore':'⚛',
 }
 
 function getEmoji(card: CardDef): string {
