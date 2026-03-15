@@ -11,72 +11,129 @@ export function DeckSelectScreen({ onSelect, onBack }: DeckSelectProps) {
   const [selectedDeck, setSelectedDeck] = useState<DeckInfo | null>(null)
   const [difficulty, setDifficulty] = useState<'easy' | 'hard'>('easy')
 
+  const energyIcons: Record<string, string> = {
+    solara: '✦', glacis: '❄', ignis: '◆', verdis: '✿', aether: '◈'
+  }
+
   return (
     <div style={{
       width: '100%', height: '100%',
       display: 'flex', flexDirection: 'column',
-      padding: 'clamp(12px, 3vw, 24px)',
-      overflow: 'auto',
+      padding: 'clamp(10px,2vw,20px)',
+      overflow: 'hidden', gap: 12,
     }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <button className="btn" onClick={onBack} style={{ padding: '6px 12px', fontSize: 12 }}>
-          ← Back
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <button className="btn" onClick={onBack} style={{ padding: '5px 12px', fontSize: 11 }}>← Back</button>
         <div>
-          <div style={{ fontFamily: 'Cinzel, serif', fontSize: 18, letterSpacing: '0.1em' }}>
+          <div style={{ fontFamily: 'Cinzel, serif', fontSize: 16, letterSpacing: '0.1em', color: 'var(--accent)' }}>
             Choose Your Faction
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            Select a deck to lead into battle
-          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Select a deck and difficulty</div>
         </div>
       </div>
 
-      {/* Deck cards */}
+      {/* Deck grid */}
       <div style={{
-        display: 'flex', gap: 16, flexWrap: 'wrap',
-        justifyContent: 'center', flex: 1,
+        display: 'flex', gap: 10, flexWrap: 'wrap',
+        justifyContent: 'center', flex: 1, overflowY: 'auto',
+        alignContent: 'flex-start', paddingBottom: 8,
       }}>
         {DECKS.map(deck => (
-          <DeckCard
+          <div
             key={deck.id}
-            deck={deck}
-            isSelected={selectedDeck?.id === deck.id}
             onClick={() => setSelectedDeck(deck)}
-          />
+            style={{
+              width: 'clamp(130px, 18vw, 160px)',
+              padding: 14,
+              borderRadius: 14,
+              border: `1.5px solid ${selectedDeck?.id === deck.id ? deck.color : 'rgba(200,160,255,0.15)'}`,
+              background: selectedDeck?.id === deck.id ? `${deck.color}18` : 'var(--bg-card)',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              transform: selectedDeck?.id === deck.id ? 'scale(1.03)' : 'scale(1)',
+              boxShadow: selectedDeck?.id === deck.id ? `0 0 20px ${deck.color}44` : 'none',
+              display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center',
+            }}
+          >
+            {/* Sigil */}
+            <div style={{
+              width: 50, height: 50, borderRadius: '50%',
+              border: `2px solid ${deck.color}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, color: deck.color,
+              background: `${deck.color}18`,
+              boxShadow: selectedDeck?.id === deck.id ? `0 0 16px ${deck.color}55` : 'none',
+            }}>
+              {energyIcons[deck.energyType]}
+            </div>
+
+            {/* Name */}
+            <div style={{
+              textAlign: 'center', fontFamily: 'Cinzel, serif',
+              fontSize: 12, fontWeight: 600,
+              color: selectedDeck?.id === deck.id ? deck.color : 'var(--text)',
+            }}>
+              {deck.name}
+            </div>
+
+            {/* Faction */}
+            <div style={{
+              fontSize: 10, color: 'var(--text-muted)',
+              letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'center',
+            }}>
+              {deck.faction}
+            </div>
+
+            {/* Description */}
+            <div style={{
+              fontSize: 10, color: 'var(--text-muted)',
+              textAlign: 'center', lineHeight: 1.4,
+            }}>
+              {deck.description}
+            </div>
+
+            {/* Bottom strip */}
+            <div style={{
+              fontSize: 10, color: deck.color,
+              borderTop: `1px solid ${deck.color}33`,
+              paddingTop: 6, width: '100%', textAlign: 'center',
+              letterSpacing: '0.1em',
+            }}>
+              30 cards
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* Difficulty + confirm */}
+      {/* Confirm area */}
       {selectedDeck && (
         <div style={{
-          marginTop: 24,
-          padding: 20,
-          borderRadius: 12,
+          flexShrink: 0,
+          padding: '14px 20px',
+          borderRadius: 14,
           border: `1px solid ${selectedDeck.color}44`,
           background: `${selectedDeck.color}0d`,
-          display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center',
+          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         }}>
-          <div style={{ fontFamily: 'Cinzel, serif', color: selectedDeck.color, fontSize: 16 }}>
-            {selectedDeck.name} selected
+          <div style={{ fontFamily: 'Cinzel, serif', color: selectedDeck.color, fontSize: 13 }}>
+            {selectedDeck.name}
           </div>
 
           {/* Difficulty */}
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 8, marginLeft: 4 }}>
             {(['easy', 'hard'] as const).map(d => (
               <button
                 key={d}
                 onClick={() => setDifficulty(d)}
                 style={{
-                  padding: '8px 24px',
-                  borderRadius: 8,
-                  border: `1.5px solid ${difficulty === d ? selectedDeck.color : 'rgba(255,255,255,0.15)'}`,
+                  padding: '6px 16px', borderRadius: 20,
+                  border: `1.5px solid ${difficulty === d ? selectedDeck.color : 'rgba(200,160,255,0.2)'}`,
                   background: difficulty === d ? `${selectedDeck.color}22` : 'transparent',
                   color: difficulty === d ? selectedDeck.color : 'var(--text-muted)',
-                  fontFamily: 'Exo 2, sans-serif',
-                  fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                  textTransform: 'capitalize', letterSpacing: '0.05em',
+                  fontFamily: 'Exo 2, sans-serif', fontWeight: 700,
+                  fontSize: 11, cursor: 'pointer',
+                  textTransform: 'capitalize', letterSpacing: '0.06em',
                   transition: 'all 0.15s',
                 }}
               >
@@ -89,95 +146,14 @@ export function DeckSelectScreen({ onSelect, onBack }: DeckSelectProps) {
             className="btn btn-primary"
             onClick={() => onSelect(selectedDeck.id, difficulty)}
             style={{
-              padding: '12px 40px', fontSize: 14,
-              letterSpacing: '0.1em',
-              border: `1px solid ${selectedDeck.color}`,
-              color: selectedDeck.color,
+              marginLeft: 'auto', padding: '8px 28px', fontSize: 12,
+              borderColor: selectedDeck.color, color: selectedDeck.color,
             }}
           >
-            ⚔  ENTER BATTLE
+            ⚔ ENTER BATTLE
           </button>
         </div>
       )}
-    </div>
-  )
-}
-
-function DeckCard({ deck, isSelected, onClick }: {
-  deck: DeckInfo; isSelected: boolean; onClick: () => void
-}) {
-  const energyIcons: Record<string, string> = {
-    solara: '✦', glacis: '❄', ignis: '◆', verdis: '✿', aether: '◈'
-  }
-
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        width: 'clamp(160px, 28vw, 200px)',
-        padding: 20,
-        borderRadius: 12,
-        border: `1.5px solid ${isSelected ? deck.color : 'rgba(255,255,255,0.12)'}`,
-        background: isSelected ? `${deck.color}15` : 'var(--bg-card)',
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-        transform: isSelected ? 'scale(1.03)' : 'scale(1)',
-        boxShadow: isSelected ? `0 0 20px ${deck.color}44` : 'none',
-        display: 'flex', flexDirection: 'column', gap: 10,
-      }}
-    >
-      {/* Icon */}
-      <div style={{
-        width: 56, height: 56, borderRadius: '50%',
-        border: `2px solid ${deck.color}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 24, color: deck.color,
-        background: `${deck.color}15`,
-        boxShadow: isSelected ? `0 0 16px ${deck.color}44` : 'none',
-        margin: '0 auto',
-      }}>
-        {energyIcons[deck.energyType]}
-      </div>
-
-      {/* Name */}
-      <div style={{
-        textAlign: 'center',
-        fontFamily: 'Cinzel, serif',
-        fontSize: 14, fontWeight: 600,
-        color: isSelected ? deck.color : 'var(--text)',
-      }}>
-        {deck.name}
-      </div>
-
-      {/* Faction */}
-      <div style={{
-        textAlign: 'center',
-        fontSize: 11, color: 'var(--text-muted)',
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-      }}>
-        {deck.faction}
-      </div>
-
-      {/* Description */}
-      <div style={{
-        fontSize: 12, color: 'var(--text-muted)',
-        textAlign: 'center', lineHeight: 1.5,
-      }}>
-        {deck.description}
-      </div>
-
-      {/* Stats */}
-      <div style={{
-        display: 'flex', justifyContent: 'center', gap: 12,
-        fontSize: 11, color: 'var(--text-dim)',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        paddingTop: 8,
-      }}>
-        <span>30 cards</span>
-        <span>·</span>
-        <span style={{ color: deck.color }}>{deck.energyType}</span>
-      </div>
     </div>
   )
 }
