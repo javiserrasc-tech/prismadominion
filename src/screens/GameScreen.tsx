@@ -105,8 +105,11 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
   const handleHandCardClick = useCallback((card: CardDef) => {
     if (state.phase !== 'player-main') return
     const needsTarget = card.type === 'art' && [
-      'art-holybeam','art-icelance','art-fireball',
+      'art-holybeam','art-icelance','art-fireball','art-solarflare',
       'art-divineshield','art-blazingcharge','art-naturesembrace','art-systemcrash',
+      'art-blessing','art-purify','art-whirlpool','art-countercurrent',
+      'art-ignite','art-entangle','art-verdantstorm','art-datadrain',
+      'art-overclock','art-nullpointer','art-firewall',
     ].includes(card.id)
     const needsBounce = card.keywords.includes('bounce')
     if (needsTarget || needsBounce) {
@@ -123,8 +126,11 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
       const isEnemy = owner === 'ai'
       const isFriendly = owner === 'player'
       if (card.type === 'art') {
-        const needsEnemy    = ['art-holybeam','art-icelance','art-fireball','art-systemcrash'].includes(card.id)
-        const needsFriendly = ['art-divineshield','art-blazingcharge','art-naturesembrace'].includes(card.id)
+        const needsEnemy    = ['art-holybeam','art-icelance','art-fireball','art-solarflare',
+          'art-systemcrash','art-whirlpool','art-countercurrent','art-ignite',
+          'art-entangle','art-verdantstorm','art-datadrain','art-nullpointer'].includes(card.id)
+        const needsFriendly = ['art-divineshield','art-blazingcharge','art-naturesembrace',
+          'art-blessing','art-purify','art-overclock','art-firewall'].includes(card.id)
         if (needsEnemy && !isEnemy) return
         if (needsFriendly && !isFriendly) return
       } else if (card.keywords.includes('bounce') && !isEnemy) return
@@ -142,7 +148,7 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
   }, [state.phase, pendingSpell, selectedBlockerFor])
 
   const handleFaceTarget = () => {
-    if (pendingSpell && ['art-holybeam','art-fireball'].includes(pendingSpell.id)) {
+    if (pendingSpell && ['art-holybeam','art-fireball','art-solarflare'].includes(pendingSpell.id)) {
       dispatch({ type: 'PLAY_CARD', cardId: pendingSpell.id, targetUid: 'opponent' })
       setPendingSpell(null)
     }
@@ -153,8 +159,11 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
     const def = getCard(bc.defId)
     if (pendingSpell) {
       if (pendingSpell.type === 'art') {
-        const needsEnemy    = ['art-holybeam','art-icelance','art-fireball','art-systemcrash'].includes(pendingSpell.id)
-        const needsFriendly = ['art-divineshield','art-blazingcharge','art-naturesembrace'].includes(pendingSpell.id)
+        const needsEnemy    = ['art-holybeam','art-icelance','art-fireball','art-solarflare',
+          'art-systemcrash','art-whirlpool','art-countercurrent','art-ignite',
+          'art-entangle','art-verdantstorm','art-datadrain','art-nullpointer'].includes(pendingSpell.id)
+        const needsFriendly = ['art-divineshield','art-blazingcharge','art-naturesembrace',
+          'art-blessing','art-purify','art-overclock','art-firewall'].includes(pendingSpell.id)
         if (needsEnemy)    return owner === 'ai' && def.type !== 'shard'
         if (needsFriendly) return owner === 'player' && def.type === 'champion'
       }
@@ -296,7 +305,7 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
             🎯 {pendingSpell.name}
-            {['art-holybeam','art-fireball'].includes(pendingSpell.id) && (
+            {['art-holybeam','art-fireball','art-solarflare'].includes(pendingSpell.id) && (
               <button onClick={handleFaceTarget} style={{
                 background: 'transparent', border: 'none',
                 color: '#ff6b8a', cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: 0,
