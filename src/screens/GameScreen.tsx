@@ -5,9 +5,10 @@ import {
   createGame, getEnergy,
   actionPlayCard, actionDeclareAttack, actionToggleAttacker,
   actionConfirmAttackers, actionAssignBlocker, actionConfirmBlockers,
-  actionResolveCombat, actionEndMainPhase,
+  actionResolveCombat, actionEndMainPhase, actionPlaceShard,
   actionStartAITurn, actionStartPlayerTurn, aiPlayCards, aiDeclareAttackers,
 } from '../game/engine'
+import type { EnergyType } from '../types'
 import { HandCard, BFieldCard, ShardToken, CardBack, ENERGY_COLORS } from '../components/CardComponent'
 import { DECK_MAP } from '../data/decks'
 
@@ -28,6 +29,7 @@ type Action =
   | { type: 'AI_PLAY_CARD' }
   | { type: 'AI_ATTACK' }
   | { type: 'PLAYER_START_TURN' }
+  | { type: 'PLACE_SHARD'; energyType: EnergyType }
 
 function cancelAttack(state: GameState): GameState {
   const s = structuredClone(state)
@@ -52,6 +54,7 @@ function reducer(state: GameState, action: Action): GameState {
     case 'AI_PLAY_CARD':      return aiPlayCards(state).newState
     case 'AI_ATTACK':         return aiDeclareAttackers(state)
     case 'PLAYER_START_TURN': return actionStartPlayerTurn(state)
+    case 'PLACE_SHARD':       return actionPlaceShard(state, action.energyType)
     default:                  return state
   }
 }
@@ -59,19 +62,22 @@ function reducer(state: GameState, action: Action): GameState {
 // ─── Props ────────────────────────────────────────────
 
 interface GameScreenProps {
-  playerDeckId: string; aiDeckId: string
+  playerDeckIds: string[]   // resolved card ID array
+  aiDeckIds:     string[]
+  playerDeckId:  string     // for display name lookup
+  aiDeckId:      string
   difficulty: 'easy' | 'hard'; onExit: () => void
 }
 
 // ─── Component ───────────────────────────────────────
 
-export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameScreenProps) {
-  const playerDeck = DECK_MAP[playerDeckId]
-  const aiDeck     = DECK_MAP[aiDeckId]
+export function GameScreen({ playerDeckIds, aiDeckIds, playerDeckId, aiDeckId, difficulty, onExit }: GameScreenProps) {
+  const playerDeck = DECK_MAP[playerDeckId] ?? { name: 'Custom', energyType: 'aether' as const, color: '#c77dff', deckIds: playerDeckIds }
+  const aiDeck     = DECK_MAP[aiDeckId]     ?? { name: 'Custom', energyType: 'ignis'  as const, color: '#ff6b8a', deckIds: aiDeckIds }
 
   const [state, dispatch] = useReducer(
     reducer, null,
-    () => createGame(playerDeck.deckIds, aiDeck.deckIds, difficulty)
+    () => createGame(playerDeckIds, aiDeckIds, difficulty)
   )
 
   const [pendingSpell, setPendingSpell]           = useState<CardDef | null>(null)
@@ -182,7 +188,21 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
     return <GameOverScreen winner={state.winner} playerName={playerDeck.name} onExit={onExit} />
   }
 
+  if (state.phase === 'player-shard') {
+    const shardCount = state.player.battlefield.filter(bc => {
+      try { return (getCard(bc.defId) as any).type === 'shard' } catch { return false }
+    }).length
+    return (
+      <ShardPickerScreen
+        shardCount={shardCount}
+        playerColor={playerColor}
+        onPick={et => dispatch({ type: 'PLACE_SHARD', energyType: et as EnergyType })}
+      />
+    )
+  }
+
   const phaseLabel: Partial<Record<GamePhase, string>> = {
+    'player-shard':     '✦ Place a Shard',
     'player-main':      '✦ Your Turn',
     'player-attackers': '⚔ Declare Attackers',
     'player-blockers':  '🛡 Assign Blockers',
@@ -540,6 +560,101 @@ function GameOverScreen({ winner, playerName, onExit }: {
       <button className="btn btn-primary" onClick={onExit} style={{ padding: '12px 32px', fontSize: 13 }}>
         ← Back to Menu
       </button>
+    </div>
+  )
+}
+
+// ─── Shard Picker ─────────────────────────────────────
+
+const ENERGY_CONFIG = [
+  { type: 'solara' as const, color: '#ffd166', glow: 'rgba(255,209,102,0.5)', icon: '✦', label: 'Solara', desc: 'Light & protection' },
+  { type: 'glacis' as const, color: '#06d6f7', glow: 'rgba(6,214,247,0.5)',   icon: '❄', label: 'Glacis', desc: 'Control & knowledge' },
+  { type: 'ignis'  as const, color: '#ff6b8a', glow: 'rgba(255,107,138,0.5)', icon: '◆', label: 'Ignis',  desc: 'Fire & aggression' },
+  { type: 'verdis' as const, color: '#7ae582', glow: 'rgba(122,229,130,0.5)', icon: '✿', label: 'Verdis', desc: 'Nature & endurance' },
+  { type: 'aether' as const, color: '#c77dff', glow: 'rgba(199,125,255,0.5)', icon: '◈', label: 'Aether', desc: 'Cyber & stealth' },
+]
+
+function ShardPickerScreen({ shardCount, playerColor, onPick }: {
+  shardCount: number
+  playerColor: string
+  onPick: (energyType: string) => void
+}) {
+  const [hovered, setHovered] = useState<string | null>(null)
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      gap: 28,
+      background: 'radial-gradient(ellipse at center, rgba(199,125,255,0.12), transparent 70%)',
+    }}>
+      {/* Title */}
+      <div style={{ textAlign: 'center' }}>
+        <div style={{
+          fontFamily: 'Cinzel, serif', fontSize: 'clamp(16px, 3vw, 22px)',
+          color: 'var(--accent)', letterSpacing: '0.12em', marginBottom: 6,
+        }}>
+          Choose Your Shard
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          {shardCount}/10 placed — select a color to add energy
+        </div>
+        {/* Progress dots */}
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 10 }}>
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} style={{
+              width: 10, height: 10, borderRadius: '50%',
+              background: i < shardCount ? 'var(--accent)' : 'rgba(200,160,255,0.15)',
+              boxShadow: i < shardCount ? '0 0 6px rgba(199,125,255,0.6)' : 'none',
+              transition: 'all 0.2s',
+            }} />
+          ))}
+        </div>
+      </div>
+
+      {/* 5 shard buttons */}
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {ENERGY_CONFIG.map(({ type, color, glow, icon, label, desc }) => (
+          <button
+            key={type}
+            onClick={() => onPick(type)}
+            onMouseEnter={() => setHovered(type)}
+            onMouseLeave={() => setHovered(null)}
+            style={{
+              width: 'clamp(90px, 14vw, 110px)',
+              padding: '16px 10px',
+              borderRadius: 16,
+              border: `2px solid ${hovered === type ? color : color + '55'}`,
+              background: hovered === type ? `${color}22` : `${color}0d`,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              transform: hovered === type ? 'translateY(-4px) scale(1.04)' : 'none',
+              boxShadow: hovered === type ? `0 0 22px ${glow}` : 'none',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            }}
+          >
+            <div style={{
+              width: 52, height: 52, borderRadius: '50%',
+              border: `2px solid ${color}`,
+              background: `${color}22`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, color,
+              boxShadow: hovered === type ? `0 0 16px ${glow}` : 'none',
+            }}>
+              {icon}
+            </div>
+            <div style={{
+              fontFamily: 'Cinzel, serif', fontSize: 12, fontWeight: 700, color,
+            }}>
+              {label}
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'center' }}>
+              {desc}
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
