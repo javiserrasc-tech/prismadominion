@@ -47,6 +47,7 @@ export interface BattleCard {
 }
 
 export type GamePhase =
+  | 'player-shard'        // Player picks which color shard to place this turn
   | 'player-main'         // Player's main phase: play cards, declare attack, end turn
   | 'player-attackers'    // Player picks attackers
   | 'player-blockers'     // Player assigns blockers (when AI attacked)
@@ -60,7 +61,7 @@ export interface PlayerState {
   deck: CardDef[]
   battlefield: BattleCard[]
   graveyard: CardDef[]
-  shardPlayedThisTurn: boolean
+  shardsPlaced: number   // how many shards on battlefield (max 10)
   extraEnergy: number    // from harvest, relics, etc.
 }
 
@@ -88,7 +89,7 @@ export interface GameState {
 //  App Screen State
 // ═══════════════════════════════════════════════════
 
-export type AppScreen = 'menu' | 'deck-select' | 'game'
+export type AppScreen = 'menu' | 'deck-select' | 'deck-builder' | 'game'
 
 export interface DeckInfo {
   id: string
