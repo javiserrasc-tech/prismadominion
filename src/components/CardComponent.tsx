@@ -41,6 +41,50 @@ function getEmoji(card: CardDef): string {
   return CARD_EMOJI[card.id] ?? '⚔'
 }
 
+// ─── CardArt: imagen real con fallback a emoji ────────────────────
+//
+//  Añadir arte a una carta:
+//    Pon el archivo en /public/cards/<card-id>.png
+//    Ejemplo: /public/cards/champ-seraphine.png
+//
+//  Formatos soportados: .png  .jpg  .webp
+//  Si el archivo no existe → muestra el emoji. El juego nunca se rompe.
+
+function CardArt({ card, height, fontSize = 26 }: {
+  card: CardDef; height: number; fontSize?: number
+}) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const bg = ENERGY_BG[card.energyType]
+
+  return (
+    <div style={{
+      width: '100%', height, flexShrink: 0,
+      background: `linear-gradient(135deg, ${bg}, rgba(0,0,0,0.5))`,
+      borderBottom: '1px solid rgba(200,160,255,0.08)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {!imgFailed && (
+        <img
+          src={`/cards/${card.id}.png`}
+          alt=""
+          onError={() => setImgFailed(true)}
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'top center',
+          }}
+        />
+      )}
+      {imgFailed && (
+        <span style={{ fontSize, position: 'relative', zIndex: 1 }}>
+          {getEmoji(card)}
+        </span>
+      )}
+    </div>
+  )
+}
+
 // ─── Tooltip ─────────────────────────────────────────
 
 function CardTooltip({ card, color, atk, def }: {
@@ -137,12 +181,7 @@ export function HandCard({ card, canPlay, isSelected, onClick }: HandCardProps) 
           fontSize: 11, fontWeight: 800,
         }}>{card.cost}</div>
 
-        <div style={{
-          height: 55,
-          background: `linear-gradient(135deg, ${bg}, rgba(0,0,0,0.5))`,
-          borderBottom: '1px solid rgba(200,160,255,0.08)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
-        }}>{getEmoji(card)}</div>
+        <CardArt card={card} height={55} fontSize={26} />
 
         <div style={{
           padding: '4px 7px 2px', fontSize: 10, fontWeight: 700,
@@ -245,12 +284,7 @@ export function BFieldCard({ bc, isSelectable, isSelected, isAttacking, isBlocki
           </>
         ) : (
           <>
-            <div style={{
-              width: '100%', height: 36,
-              background: `linear-gradient(135deg, ${bg}, rgba(0,0,0,0.4))`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20, borderBottom: '1px solid rgba(200,160,255,0.06)',
-            }}>{getEmoji(card)}</div>
+            <CardArt card={card} height={36} fontSize={20} />
 
             <div style={{
               padding: '2px 4px', fontSize: 8, fontWeight: 700, color,
