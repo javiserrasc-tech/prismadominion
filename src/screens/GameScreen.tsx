@@ -1,13 +1,12 @@
 import { useReducer, useEffect, useCallback, useState } from 'react'
-import type { GameState, BattleCard, CardDef } from '../types'
+import type { GameState, BattleCard, CardDef, GamePhase } from '../types'
 import { getCard } from '../data/cards'
 import {
-  createGame, getEnergy, getCardOnBattlefield,
+  createGame, getEnergy,
   actionPlayCard, actionDeclareAttack, actionToggleAttacker,
   actionConfirmAttackers, actionAssignBlocker, actionConfirmBlockers,
   actionResolveCombat, actionEndMainPhase,
   actionStartAITurn, actionStartPlayerTurn, aiPlayCards, aiDeclareAttackers,
-  getEffectiveAtk, getEffectiveDef,
 } from '../game/engine'
 import { HandCard, BFieldCard, CardBack, ENERGY_COLORS } from '../components/CardComponent'
 import { DECK_MAP } from '../data/decks'
@@ -99,7 +98,6 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
     if (state.phase === 'game-over' || state.winner) return
 
     if (state.phase === 'ai-turn') {
-      // Step 1: untap + draw
       const t1 = setTimeout(() => dispatch({ type: 'AI_START' }), 400)
       return () => clearTimeout(t1)
     }
@@ -112,7 +110,6 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
 
   useEffect(() => {
     if (state.phase !== 'ai-turn' || state.winner) return
-    // After AI_START sets up turn, play cards and attack
     const { played } = aiPlayCards(state)
     if (played) {
       const t = setTimeout(() => dispatch({ type: 'AI_PLAY_CARD' }), 700)
@@ -146,7 +143,6 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
   const handleBattleFieldClick = useCallback((uid: string, owner: 'player' | 'ai') => {
     const { phase } = state
 
-    // Spell targeting
     if (pendingSpell) {
       const card = pendingSpell
       const isEnemy = owner === 'ai'
@@ -164,13 +160,11 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
       return
     }
 
-    // Attack declaration
     if (phase === 'player-attackers' && owner === 'player') {
       dispatch({ type: 'TOGGLE_ATTACKER', uid })
       return
     }
 
-    // Blocker assignment
     if (phase === 'player-blockers' && owner === 'player') {
       if (selectedBlockerFor) {
         dispatch({ type: 'ASSIGN_BLOCKER', attackerUid: selectedBlockerFor, blockerUid: uid })
@@ -221,7 +215,7 @@ export function GameScreen({ playerDeckId, aiDeckId, difficulty, onExit }: GameS
     return <GameOverScreen winner={state.winner} playerName={playerDeck.name} onExit={onExit} />
   }
 
-const phaseLabel: Partial<Record<GamePhase, string>> = {
+  const phaseLabel: Partial<Record<GamePhase, string>> = {
     'player-main': 'Your Turn',
     'player-attackers': 'Declare Attackers',
     'player-blockers': 'Assign Blockers',
@@ -246,14 +240,12 @@ const phaseLabel: Partial<Record<GamePhase, string>> = {
         borderBottom: '1px solid var(--border)',
         background: `linear-gradient(180deg, ${aiColor}0a, transparent)`,
       }}>
-        {/* AI header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <LifeBar life={state.ai.life} color={aiColor} label={`AI — ${aiDeck.name}`} />
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
             Hand: {state.ai.hand.length} · Deck: {state.ai.deck.length}
           </div>
         </div>
-        {/* AI hand (face down) */}
         <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 4 }}>
           {state.ai.hand.map((_, i) => <CardBack key={i} />)}
         </div>
@@ -304,7 +296,6 @@ const phaseLabel: Partial<Record<GamePhase, string>> = {
         background: 'rgba(0,0,0,0.3)',
         minHeight: 52,
       }}>
-        {/* Phase badge */}
         <div style={{
           padding: '4px 12px', borderRadius: 20,
           background: 'rgba(255,255,255,0.06)',
@@ -318,12 +309,10 @@ const phaseLabel: Partial<Record<GamePhase, string>> = {
           {phaseLabel[state.phase]}
         </div>
 
-        {/* Turn counter */}
         <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           Turn {state.turn}
         </div>
 
-        {/* Energy */}
         {state.phase === 'player-main' && (
           <div style={{
             padding: '4px 10px', borderRadius: 20,
@@ -334,7 +323,6 @@ const phaseLabel: Partial<Record<GamePhase, string>> = {
           </div>
         )}
 
-        {/* Pending spell hint */}
         {pendingSpell && (
           <div style={{
             fontSize: 11, color: '#ffcc44',
@@ -366,7 +354,6 @@ const phaseLabel: Partial<Record<GamePhase, string>> = {
           </div>
         )}
 
-        {/* Blocker selection hint */}
         {state.phase === 'player-blockers' && selectedBlockerFor && (
           <div style={{
             fontSize: 11, color: '#88ff88',
@@ -387,7 +374,6 @@ const phaseLabel: Partial<Record<GamePhase, string>> = {
           </div>
         )}
 
-        {/* Action buttons */}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           {state.phase === 'player-main' && !pendingSpell && (
             <>
