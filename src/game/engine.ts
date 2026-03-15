@@ -210,28 +210,64 @@ export function actionPlayCard(
     p.battlefield.push(bc)
     addLog(s, `${who === 'player' ? '✨ You summon' : '🤖 AI summons'} ${card.name} (${card.atk}/${card.def})`)
 
-    // On-enter effects
+    // Bounce on enter
     if (card.keywords.includes('bounce') && targetUid) {
       applyBounce(s, who, targetUid)
     }
-    if (card.name === 'Seraphine') {
-      s[who].life += 2
-      addLog(s, `💛 ${card.name}: +2 life → ${s[who].life}`)
+    // Daemon: bounce without keyword flag
+    if (card.id === 'champ-daemon' && targetUid) {
+      applyBounce(s, who, targetUid)
     }
+    // Harvest: +1 energy
     if (card.keywords.includes('harvest')) {
       s[who].extraEnergy += 1
       addLog(s, `🌿 ${card.name}: +1 bonus energy this turn`)
     }
-    if (card.name === 'Mizuki') {
+    // Life gain on enter
+    const lifeOnEnter: Record<string, number> = {
+      'champ-seraphine': 2, 'champ-celestia': 3, 'champ-briar': 1,
+      'champ-worldtree': 4, 'champ-solara-prime': 5,
+    }
+    if (lifeOnEnter[card.id]) {
+      s[who].life += lifeOnEnter[card.id]
+      addLog(s, `💛 ${card.name}: +${lifeOnEnter[card.id]} life → ${s[who].life}`)
+    }
+    // Draw on enter
+    const drawOnEnter = ['champ-mizuki', 'champ-prism']
+    if (drawOnEnter.includes(card.id)) {
       drawCard(s, who, 1)
-      addLog(s, `🔮 Mizuki: draw 1 card`)
+      addLog(s, `🔮 ${card.name}: draw 1 card`)
+    }
+    // Hex: deal 2 damage to target enemy on enter
+    if (card.id === 'champ-hex' && targetUid) {
+      dealDamageToCard(s, targetUid, 2, 'Hex')
+    }
+    // Aqua: deal 1 to all enemies on enter
+    if (card.id === 'champ-aqua') {
+      const opponent = who === 'player' ? 'ai' : 'player'
+      const enemies = [...s[opponent].battlefield]
+      for (const ebc of enemies) {
+        if (getCard(ebc.defId).type !== 'shard') dealDamageToCard(s, ebc.uid, 1, 'Aqua')
+      }
+    }
+    // Null: destroy target enemy relic on enter
+    if (card.id === 'champ-null' && targetUid) {
+      const opponent = who === 'player' ? 'ai' : 'player'
+      const res = getCardOnBattlefield(s, targetUid)
+      if (res && res.owner === opponent && getCard(res.card.defId).type === 'relic') {
+        sendToGraveyard(s[opponent], targetUid)
+        addLog(s, `💥 Null: ${getCard(res.card.defId).name} destroyed!`)
+      }
     }
 
-    // Apply Power Core bonus if relic is in play
-    const hasPowerCore = p.battlefield.some(b => b.defId === 'relic-powercore')
-    if (hasPowerCore && card.type === 'champion') {
-      bc.bonusAtk += 1
-    }
+    // Apply static relic buffs to new champion
+    if (p.battlefield.some(b => b.defId === 'relic-powercore'))    { bc.bonusAtk += 1 }
+    if (p.battlefield.some(b => b.defId === 'relic-quantumcore'))  { bc.bonusAtk += 1; bc.bonusDef += 1 }
+    if (p.battlefield.some(b => b.defId === 'relic-halocrown'))    { bc.bonusDef += 2 }
+    if (p.battlefield.some(b => b.defId === 'relic-canopyshield')) { bc.bonusDef += 2 }
+    if (p.battlefield.some(b => b.defId === 'relic-arcticthrone')) { bc.bonusAtk += 1; bc.bonusDef += 2 }
+    if (p.battlefield.some(b => b.defId === 'relic-forgeoffury'))  { bc.bonusAtk += 2 }
+
   } else if (card.type === 'art') {
     applyArt(s, card, who, targetUid)
     p.graveyard.push(card)
@@ -241,7 +277,7 @@ export function actionPlayCard(
     s[opponent].battlefield.forEach(bc => {
       if (bc.defId === 'champ-glitch') {
         s[who].life -= 1
-        addLog(s, `⚡ Glitch: counter-damage! ${who === 'player' ? 'You' : 'AI'} lose 1 life → ${s[who].life}`)
+        addLog(s, `⚡ Glitch: counter-damage! → ${s[who].life}`)
         checkWinner(s)
       }
     })
@@ -251,13 +287,23 @@ export function actionPlayCard(
     p.battlefield.push(bc)
     addLog(s, `${who === 'player' ? '💎 You play relic' : '🔵 AI plays relic'} ${card.name}`)
 
-    if (card.id === 'relic-powercore') {
+    // Apply static buffs to existing champions
+    const buffAll = (atkBonus: number, defBonus: number) => {
       p.battlefield.forEach(b => {
-        if (getCard(b.defId).type === 'champion') b.bonusAtk += 1
+        if (getCard(b.defId).type === 'champion') {
+          b.bonusAtk += atkBonus
+          b.bonusDef += defBonus
+        }
       })
-      addLog(s, `⚡ Power Core: all your champions gain +1 ATK`)
     }
+    if (card.id === 'relic-powercore')    { buffAll(1, 0); addLog(s, `⚡ Power Core: +1 ATK to all champions`) }
+    if (card.id === 'relic-quantumcore')  { buffAll(1, 1); addLog(s, `⚡ Quantum Core: +1/+1 to all champions`) }
+    if (card.id === 'relic-halocrown')    { buffAll(0, 2); addLog(s, `👑 Halo Crown: +0/+2 to all champions`) }
+    if (card.id === 'relic-canopyshield') { buffAll(0, 2); addLog(s, `🌿 Canopy Shield: +0/+2 to all champions`) }
+    if (card.id === 'relic-arcticthrone') { buffAll(1, 2); addLog(s, `❄ Arctic Throne: +1/+2 to all champions`) }
+    if (card.id === 'relic-forgeoffury')  { buffAll(2, 0); addLog(s, `🔥 Forge of Fury: +2 ATK to all champions`) }
   }
+
 
   checkWinner(s)
   return s
@@ -367,8 +413,232 @@ function applyArt(
       }
       break
     }
+    // ── Solara new arts ──
+    case 'art-healinglight': {
+      s[who].life += 4
+      addLog(s, `💛 Healing Light: +4 life → ${s[who].life}`)
+      break
+    }
+    case 'art-purify': {
+      if (!targetUid) return
+      const res = getCardOnBattlefield(s, targetUid)
+      if (res && res.owner === who) {
+        res.card.frozenTurns = 0
+        res.card.bonusDef += 2
+        addLog(s, `✨ Purify: ${getCard(res.card.defId).name} cleansed +0/+2`)
+      }
+      break
+    }
+    case 'art-radiantstrike': {
+      const enemies = [...s[opponent].battlefield]
+      for (const ebc of enemies) {
+        if (getCard(ebc.defId).type !== 'shard') dealDamageToCard(s, ebc.uid, 2, 'Radiant Strike')
+      }
+      break
+    }
+    case 'art-blessing': {
+      if (!targetUid) return
+      const res = getCardOnBattlefield(s, targetUid)
+      if (res && res.owner === who) {
+        res.card.bonusAtk += 2; res.card.bonusDef += 2
+        addLog(s, `💛 Blessing: ${getCard(res.card.defId).name} +2/+2`)
+      }
+      break
+    }
+    case 'art-solarflare': {
+      if (!targetUid) return
+      if (targetUid === 'opponent') {
+        s[opponent].life -= 5
+        addLog(s, `☀️ Solar Flare: 5 damage to ${opponent} → ${s[opponent].life}`)
+        checkWinner(s)
+      } else {
+        dealDamageToCard(s, targetUid, 5, 'Solar Flare')
+      }
+      break
+    }
+    // ── Glacis new arts ──
+    case 'art-whirlpool': {
+      if (!targetUid) return
+      applyBounce(s, who, targetUid)
+      break
+    }
+    case 'art-frozentime': {
+      s[opponent].battlefield.forEach(ebc => {
+        if (getCard(ebc.defId).type !== 'shard') {
+          ebc.tapped = true; ebc.frozenTurns = 1
+        }
+      })
+      addLog(s, `❄ Frozen Time: all enemies frozen!`)
+      break
+    }
+    case 'art-insight': {
+      drawCard(s, who, 2)
+      addLog(s, `📖 Insight: draw 2 cards`)
+      break
+    }
+    case 'art-blizzard': {
+      const enemies = [...s[opponent].battlefield]
+      for (const ebc of enemies) {
+        if (getCard(ebc.defId).type !== 'shard') {
+          dealDamageToCard(s, ebc.uid, 1, 'Blizzard')
+          const stillAlive = s[opponent].battlefield.find(b => b.uid === ebc.uid)
+          if (stillAlive) { stillAlive.tapped = true }
+        }
+      }
+      break
+    }
+    case 'art-countercurrent': {
+      if (!targetUid) return
+      const res = getCardOnBattlefield(s, targetUid)
+      if (res && res.owner === opponent && res.card.tapped) {
+        dealDamageToCard(s, targetUid, 3, 'Countercurrent')
+      }
+      break
+    }
+    // ── Ignis new arts ──
+    case 'art-ignite': {
+      if (!targetUid) return
+      dealDamageToCard(s, targetUid, 2, 'Ignite')
+      break
+    }
+    case 'art-inferno': {
+      const enemies = [...s[opponent].battlefield]
+      for (const ebc of enemies) {
+        if (getCard(ebc.defId).type !== 'shard') dealDamageToCard(s, ebc.uid, 3, 'Inferno')
+      }
+      break
+    }
+    case 'art-heatwave': {
+      s[who].battlefield.forEach(fbc => {
+        if (getCard(fbc.defId).type === 'champion') fbc.bonusAtk += 2
+      })
+      addLog(s, `🔥 Heat Wave: all your champions +2 ATK this turn`)
+      break
+    }
+    case 'art-eruption': {
+      s[opponent].life -= 2
+      addLog(s, `🌋 Eruption: 2 damage to ${opponent} → ${s[opponent].life}`)
+      checkWinner(s)
+      if (!s.winner && targetUid) dealDamageToCard(s, targetUid, 2, 'Eruption')
+      break
+    }
+    case 'art-phoenixcall': {
+      if (!targetUid) return
+      const grave = s[who].graveyard.find(c => c.id === targetUid)
+      if (grave) {
+        s[who].graveyard = s[who].graveyard.filter(c => c !== grave)
+        s[who].hand.push(grave)
+        addLog(s, `🦅 Phoenix Call: ${grave.name} returned to hand`)
+      }
+      break
+    }
+    // ── Verdis new arts ──
+    case 'art-entangle': {
+      if (!targetUid) return
+      const res = getCardOnBattlefield(s, targetUid)
+      if (res && res.owner === opponent) {
+        res.card.tapped = true; res.card.frozenTurns = 1
+        addLog(s, `🌿 Entangle: ${getCard(res.card.defId).name} entangled`)
+      }
+      break
+    }
+    case 'art-regrowth': {
+      if (!targetUid) return
+      const grave = s[who].graveyard.find(c => c.id === targetUid)
+      if (grave) {
+        s[who].graveyard = s[who].graveyard.filter(c => c !== grave)
+        s[who].hand.push(grave)
+        addLog(s, `🌱 Regrowth: ${grave.name} returned to hand`)
+      }
+      break
+    }
+    case 'art-overgrowth': {
+      s[who].battlefield.forEach(fbc => {
+        if (getCard(fbc.defId).type === 'champion') { fbc.bonusAtk += 1; fbc.bonusDef += 2 }
+      })
+      addLog(s, `🌿 Overgrowth: all your champions +1/+2`)
+      break
+    }
+    case 'art-sporecloud': {
+      const enemies = [...s[opponent].battlefield]
+      for (const ebc of enemies) {
+        if (getCard(ebc.defId).type !== 'shard') {
+          dealDamageToCard(s, ebc.uid, 1, 'Spore Cloud')
+          const stillAlive = s[opponent].battlefield.find(b => b.uid === ebc.uid)
+          if (stillAlive) stillAlive.tapped = true
+        }
+      }
+      break
+    }
+    case 'art-ancientrite': {
+      const champCount = s[who].battlefield.filter(bc => getCard(bc.defId).type === 'champion').length
+      s[who].life += champCount * 2
+      addLog(s, `🌿 Ancient Rite: +${champCount * 2} life → ${s[who].life}`)
+      break
+    }
+    case 'art-verdantstorm': {
+      if (!targetUid) return
+      dealDamageToCard(s, targetUid, 3, 'Verdant Storm')
+      s[who].life += 3
+      addLog(s, `🌿 Verdant Storm: +3 life → ${s[who].life}`)
+      break
+    }
+    // ── Aether new arts ──
+    case 'art-datadrain': {
+      if (!targetUid) return
+      dealDamageToCard(s, targetUid, 2, 'Data Drain')
+      drawCard(s, who, 1)
+      addLog(s, `⚡ Data Drain: draw 1 card`)
+      break
+    }
+    case 'art-overclock': {
+      if (!targetUid) return
+      const res = getCardOnBattlefield(s, targetUid)
+      if (res && res.owner === who) {
+        res.card.bonusAtk += 2
+        res.card.rushThisTurn = true
+        res.card.summonSick = false
+        addLog(s, `⚡ Overclock: ${getCard(res.card.defId).name} +2 ATK + Rush`)
+      }
+      break
+    }
+    case 'art-ghostprotocol': {
+      s[who].battlefield.forEach(fbc => {
+        if (getCard(fbc.defId).type === 'champion') fbc.rushThisTurn = true
+      })
+      addLog(s, `👻 Ghost Protocol: all your champions gain Stealth this turn`)
+      break
+    }
+    case 'art-nullpointer': {
+      if (!targetUid) return
+      const res = getCardOnBattlefield(s, targetUid)
+      if (res && res.owner === opponent && res.card.tapped) {
+        dealDamageToCard(s, targetUid, 3, 'Null Pointer')
+      }
+      break
+    }
+    case 'art-reboot': {
+      if (!targetUid) return
+      const grave = s[who].graveyard.find(c => c.id === targetUid)
+      if (grave) {
+        s[who].graveyard = s[who].graveyard.filter(c => c !== grave)
+        s[who].hand.push(grave)
+        addLog(s, `🔄 Reboot: ${grave.name} returned to hand`)
+      }
+      break
+    }
+    case 'art-firewall': {
+      if (!targetUid) return
+      const res = getCardOnBattlefield(s, targetUid)
+      if (res && res.owner === who) {
+        res.card.bonusDef += 4
+        addLog(s, `🔥 Firewall: ${getCard(res.card.defId).name} +0/+4`)
+      }
+      break
+    }
   }
 }
+
 
 function dealDamageToCard(s: GameState, targetUid: string, damage: number, source: string) {
   const res = getCardOnBattlefield(s, targetUid)
@@ -708,46 +978,89 @@ export function actionStartPlayerTurn(state: GameState): GameState {
 
 function untapPhase(s: GameState, who: 'player' | 'ai') {
   const p = s[who]
+  const opp = who === 'player' ? 'ai' : 'player'
   p.shardPlayedThisTurn = false
   p.extraEnergy = 0
 
-  // Crystal Amulet bonus
-  const hasAmulet = p.battlefield.some(bc => bc.defId === 'relic-crystalamulet')
-  if (hasAmulet) {
-    p.extraEnergy += 1
-    addLog(s, `💎 Crystal Amulet: +1 bonus energy`)
+  // Energy relics: Crystal Amulet / War Drum / Root Network
+  const energyRelics = ['relic-crystalamulet', 'relic-wardrum', 'relic-rootnetwork']
+  for (const relicId of energyRelics) {
+    if (p.battlefield.some(bc => bc.defId === relicId)) {
+      p.extraEnergy += 1
+      addLog(s, `💎 ${getCard(relicId).name}: +1 bonus energy`)
+    }
   }
 
-  for (const bc of p.battlefield) {
-    if (bc.frozenTurns > 0) {
-      bc.frozenTurns--
-      continue // skip untap
+  // Sacred Banner: +1 life per champion
+  if (p.battlefield.some(bc => bc.defId === 'relic-sacredbanner')) {
+    const champCount = p.battlefield.filter(bc => getCard(bc.defId).type === 'champion').length
+    if (champCount > 0) {
+      p.life += champCount
+      addLog(s, `🚩 Sacred Banner: +${champCount} life → ${p.life}`)
     }
+  }
+
+  // Druidic Altar: +2 life
+  if (p.battlefield.some(bc => bc.defId === 'relic-druidicaltar')) {
+    p.life += 2
+    addLog(s, `🌿 Druidic Altar: +2 life → ${p.life}`)
+  }
+
+  // Draw relics: Tidecaller's Orb / Neural Link
+  const drawRelics = ['relic-tidecallerorb', 'relic-neurallink']
+  for (const relicId of drawRelics) {
+    if (p.battlefield.some(bc => bc.defId === relicId)) {
+      drawCard(s, who, 1)
+      addLog(s, `📖 ${getCard(relicId).name}: draw 1 card`)
+    }
+  }
+
+  // Ember Crown: 1 damage to random enemy champion
+  if (p.battlefield.some(bc => bc.defId === 'relic-embercrown')) {
+    const enemyChamps = s[opp].battlefield.filter(bc => getCard(bc.defId).type === 'champion')
+    if (enemyChamps.length > 0) {
+      const target = enemyChamps[Math.floor(Math.random() * enemyChamps.length)]
+      dealDamageToCard(s, target.uid, 1, 'Ember Crown')
+    }
+  }
+
+  // Frostwatch Tower: freeze random enemy permanent
+  if (p.battlefield.some(bc => bc.defId === 'relic-frostwatch')) {
+    const enemies = s[opp].battlefield.filter(bc => getCard(bc.defId).type !== 'shard')
+    if (enemies.length > 0) {
+      const target = enemies[Math.floor(Math.random() * enemies.length)]
+      target.tapped = true
+      target.frozenTurns = 1
+      addLog(s, `❄ Frostwatch Tower: ${getCard(target.defId).name} frozen`)
+    }
+  }
+
+  // Untap all cards (skip frozen)
+  for (const bc of p.battlefield) {
+    if (bc.frozenTurns > 0) { bc.frozenTurns--; continue }
     bc.tapped = false
     bc.summonSick = false
     bc.attacking = false
     bc.rushThisTurn = false
-    // Clear temp buffs
     bc.bonusAtk = 0
     bc.bonusDef = 0
   }
 
-  // Igna buff
+  // Igna: +1 ATK / -1 DEF each turn
   const igna = p.battlefield.find(bc => bc.defId === 'champ-igna')
   if (igna) {
     igna.bonusAtk += 1
     igna.bonusDef -= 1
-    addLog(s, `🔥 Igna grows stronger: ${getEffectiveAtk(igna)}/${Math.max(0, getEffectiveDef(igna))}`)
+    addLog(s, `🔥 Igna: ${getEffectiveAtk(igna)}/${Math.max(0, getEffectiveDef(igna))}`)
   }
 
-  // Regenerate
+  // Regenerate: +1 life per champion
   const regCards = p.battlefield.filter(bc => getCard(bc.defId).keywords.includes('regenerate'))
   for (const bc of regCards) {
     p.life += 1
-    addLog(s, `💚 ${getCard(bc.defId).name} regenerates: +1 life → ${p.life}`)
+    addLog(s, `💚 ${getCard(bc.defId).name}: +1 life → ${p.life}`)
   }
 }
-
 function drawPhase(s: GameState, who: 'player' | 'ai') {
   drawCard(s, who, 1)
 }
@@ -811,39 +1124,59 @@ export function aiPlayCards(state: GameState): { newState: GameState; played: bo
 function pickArtTarget(s: GameState, artId: string, who: 'ai' | 'player'): string | undefined {
   const opponent = who === 'player' ? 'ai' : 'player'
   const friendlyChamps = s[who].battlefield.filter(bc => getCard(bc.defId).type === 'champion')
-  const enemyChamps = s[opponent].battlefield.filter(bc => getCard(bc.defId).type === 'champion')
+  const enemyChamps    = s[opponent].battlefield.filter(bc => getCard(bc.defId).type === 'champion')
+  const tappedEnemies  = enemyChamps.filter(bc => bc.tapped)
 
-  switch (artId) {
-    case 'art-holybeam':
-    case 'art-fireball':
-    case 'art-systemcrash': {
-      // Target highest ATK enemy champion, or go face if none
-      if (enemyChamps.length === 0) return 'opponent'
-      const best = enemyChamps.reduce((a, b) =>
-        getEffectiveAtk(a) > getEffectiveAtk(b) ? a : b
-      )
-      return best.uid
-    }
-    case 'art-icelance': {
-      if (enemyChamps.length === 0) return undefined
-      return enemyChamps.reduce((a, b) =>
-        getEffectiveAtk(a) > getEffectiveAtk(b) ? a : b
-      ).uid
-    }
-    case 'art-tidalcrash':
-      return undefined // no target needed
-    case 'art-divineshield':
-    case 'art-blazingcharge':
-    case 'art-naturesembrace': {
-      if (friendlyChamps.length === 0) return undefined
-      return friendlyChamps.reduce((a, b) =>
-        getEffectiveAtk(a) > getEffectiveAtk(b) ? a : b
-      ).uid
-    }
-    default:
-      return undefined
+  const highestAtkEnemy = () => enemyChamps.length === 0 ? undefined
+    : enemyChamps.reduce((a, b) => getEffectiveAtk(a) > getEffectiveAtk(b) ? a : b).uid
+
+  const highestAtkFriendly = () => friendlyChamps.length === 0 ? undefined
+    : friendlyChamps.reduce((a, b) => getEffectiveAtk(a) > getEffectiveAtk(b) ? a : b).uid
+
+  // Arts that hit enemy or face
+  if (['art-holybeam','art-fireball','art-solarflare'].includes(artId)) {
+    return enemyChamps.length === 0 ? 'opponent' : highestAtkEnemy()
   }
+  // Arts that destroy targets
+  if (['art-systemcrash'].includes(artId)) {
+    if (enemyChamps.length === 0) return undefined
+    return highestAtkEnemy()
+  }
+  // Arts that freeze/tap enemies
+  if (['art-icelance','art-entangle'].includes(artId)) {
+    return highestAtkEnemy()
+  }
+  // Arts that deal damage to a specific enemy champion
+  if (['art-ignite','art-datadrain','art-verdantstorm','art-nullpointer'].includes(artId)) {
+    if (artId === 'art-nullpointer') return tappedEnemies.length > 0
+      ? tappedEnemies.reduce((a, b) => getEffectiveAtk(a) > getEffectiveAtk(b) ? a : b).uid
+      : undefined
+    return highestAtkEnemy()
+  }
+  // Arts with no target needed (AoE, self-effects)
+  if (['art-tidalcrash','art-radiantstrike','art-inferno','art-heatwave',
+       'art-frozentime','art-blizzard','art-sporecloud','art-overgrowth',
+       'art-ancientrite','art-ghostprotocol','art-insight','art-healinglight',
+       'art-eruption'].includes(artId)) {
+    if (artId === 'art-eruption') return highestAtkEnemy() // for the champion part
+    return undefined
+  }
+  // Arts that buff friendly champion
+  if (['art-divineshield','art-blazingcharge','art-naturesembrace','art-blessing',
+       'art-purify','art-overclock','art-firewall'].includes(artId)) {
+    return highestAtkFriendly()
+  }
+  // Graveyard arts — pick first champion in graveyard
+  if (['art-phoenixcall','art-regrowth','art-reboot'].includes(artId)) {
+    const gravChamp = s[who].graveyard.find(c => c.type === 'champion')
+    return gravChamp?.id
+  }
+  // Bounce
+  if (artId === 'art-whirlpool') return highestAtkEnemy()
+
+  return undefined
 }
+
 
 export function aiDeclareAttackers(state: GameState): GameState {
   const s = clone(state)
