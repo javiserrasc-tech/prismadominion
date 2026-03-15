@@ -1,0 +1,131 @@
+/* ═══════════════════════════════════════════════════════
+   PRISMA DOMINION — Global Styles
+   Dark anime aesthetic with faction neon accents
+   ═══════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #08080f;
+  --bg-surface: #11111e;
+  --bg-card: #181828;
+  --bg-hover: #20203a;
+  --border: rgba(180, 180, 220, 0.12);
+  --border-bright: rgba(180, 180, 220, 0.3);
+  --text: #e8e8f4;
+  --text-muted: #7878a0;
+  --text-dim: #4a4a6a;
+
+  --solara: #f5a623;
+  --solara-bg: rgba(245, 166, 35, 0.12);
+  --solara-glow: rgba(245, 166, 35, 0.4);
+
+  --glacis: #4a90d9;
+  --glacis-bg: rgba(74, 144, 217, 0.12);
+  --glacis-glow: rgba(74, 144, 217, 0.4);
+
+  --ignis: #e84040;
+  --ignis-bg: rgba(232, 64, 64, 0.12);
+  --ignis-glow: rgba(232, 64, 64, 0.4);
+
+  --verdis: #27ae60;
+  --verdis-bg: rgba(39, 174, 96, 0.12);
+  --verdis-glow: rgba(39, 174, 96, 0.4);
+
+  --aether: #9b59b6;
+  --aether-bg: rgba(155, 89, 182, 0.12);
+  --aether-glow: rgba(155, 89, 182, 0.4);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Exo 2', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+  user-select: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all 0.15s;
+}
+
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3a3a6a, #2a2a50);
+  border: 1px solid var(--border-bright);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4a4a8a, #3a3a6a);
+}
+
+.btn-danger {
+  border-color: var(--ignis);
+  color: var(--ignis);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--ignis-bg);
+}
+
+.btn-success {
+  border-color: var(--verdis);
+  color: var(--verdis);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: var(--verdis-bg);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 4px; }
+
+/* ── Keyword badge colors ── */
+.kw-rush       { color: var(--ignis); border-color: var(--ignis); background: var(--ignis-bg); }
+.kw-flying     { color: var(--solara); border-color: var(--solara); background: var(--solara-bg); }
+.kw-taunt      { color: var(--verdis); border-color: var(--verdis); background: var(--verdis-bg); }
+.kw-trample    { color: var(--verdis); border-color: var(--verdis); background: var(--verdis-bg); }
+.kw-freeze     { color: var(--glacis); border-color: var(--glacis); background: var(--glacis-bg); }
+.kw-draw       { color: var(--glacis); border-color: var(--glacis); background: var(--glacis-bg); }
+.kw-bounce     { color: var(--glacis); border-color: var(--glacis); background: var(--glacis-bg); }
+.kw-regenerate { color: var(--verdis); border-color: var(--verdis); background: var(--verdis-bg); }
+.kw-harvest    { color: var(--verdis); border-color: var(--verdis); background: var(--verdis-bg); }
+.kw-resilient  { color: var(--verdis); border-color: var(--verdis); background: var(--verdis-bg); }
+.kw-stealth    { color: var(--aether); border-color: var(--aether); background: var(--aether-bg); }
+.kw-rebirth    { color: var(--ignis); border-color: var(--ignis); background: var(--ignis-bg); }
